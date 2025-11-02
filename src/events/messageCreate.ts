@@ -4,6 +4,7 @@ import {
     getChannelInfo, getServerConfig, getUserConfig, openChannelInfo,
     openConfig, UserConfig, getAttachmentData, getTextFileAttachmentData
 } from '../utils/index.js'
+import Keys from '../keys.js'
 
 /** 
  * Max Message length for free users is 2000 characters (bot or not).
@@ -18,6 +19,9 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
 
     // Do not respond if bot talks in the chat
     if (message.author.username === message.client.user.username) return
+
+    // Do not respond if message is not in the specified channel
+    if (message.channel.id !== Keys.channelId) return
 
     // Save User Chat even if not for the bot
     let channelContextHistory: UserMessage[] = await new Promise((resolve) => {
@@ -73,9 +77,6 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         message.channel as TextChannel,
         channelHistory.getItems()
     )
-
-    // Only respond if message mentions the bot
-    if (!message.mentions.has(clientId)) return
 
     // default stream to false
     let shouldStream = false
