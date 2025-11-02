@@ -1,8 +1,14 @@
 import { TextChannel } from 'discord.js'
 import { event, Events, normalMessage, UserMessage, clean, addToChannelContext } from '../utils/index.js'
 import {
-    getChannelInfo, getServerConfig, getUserConfig, openChannelInfo,
-    openConfig, UserConfig, getAttachmentData, getTextFileAttachmentData
+    getChannelInfo,
+    getServerConfig,
+    getUserConfig,
+    openChannelInfo,
+    openConfig,
+    UserConfig,
+    getAttachmentData,
+    getTextFileAttachmentData
 } from '../utils/index.js'
 import Keys from '../keys.js'
 
@@ -10,29 +16,29 @@ import Keys from '../keys.js'
  * Max Message length for free users is 2000 characters (bot or not).
  * Bot supports infinite lengths for normal messages.
  * 
- * @param message the message received from the channel
+ * @param oldMessage the old message before the update
+ * @param newMessage the new message after the update
  */
-export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory, ollama, client, defaultModel }, message) => {
+export default event(Events.MessageUpdate, async ({ log, msgHist, channelHistory, ollama, client, defaultModel }, oldMessage, newMessage) => {
+    if (oldMessage.content !== 'Generating Response . . .' || oldMessage.content === newMessage.content) return
+
     const clientId = client.user!!.id
-    let cleanedMessage = clean(message.content, clientId)
-    log(`Message \"${cleanedMessage}\" from ${message.author.tag} in channel/thread ${message.channelId}.`)
+    let cleanedMessage = clean(newMessage.content, clientId)
+    log(`Message "${cleanedMessage}" from ${newMessage.author.tag} in channel/thread ${newMessage.channelId}.`)
 
     // Do not respond if bot talks in the chat
-    if (message.author.username === message.client.user.username) return
-
-    // Do not respond if another bot is generating a response
-    if (message.content === 'Generating Response . . .') return
+    if (newMessage.author.username === newMessage.client.user.username) return
 
     // Do not respond if message is not in the specified channel
-    if (message.channel.id !== Keys.channelId) return
+    if (newMessage.channel.id !== Keys.channelId) return
 
     // Save User Chat even if not for the bot
     let channelContextHistory: UserMessage[] = await new Promise((resolve) => {
-        getChannelInfo(`${message.channelId}-context.json`, (channelInfo) => {
+        getChannelInfo(`${newMessage.channelId}-context.json`, (channelInfo) => {
             if (channelInfo?.messages)
                 resolve(channelInfo.messages)
             else {
-                log(`Channel/Thread ${message.channel}-context does not exist. File will be created shortly...`)
+                log(`Channel/Thread ${newMessage.channel}-context does not exist. File will be created shortly...`)
                 resolve([])
             }
         })
@@ -40,14 +46,14 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
 
     if (channelContextHistory.length === 0) {
         channelContextHistory = await new Promise((resolve) => {
-            addToChannelContext(message.channelId,
-                message.channel as TextChannel
+            addToChannelContext(newMessage.channelId,
+                newMessage.channel as TextChannel
             )
-            getChannelInfo(`${message.channelId}-context.json`, (channelInfo) => {
+            getChannelInfo(`${newMessage.channelId}-context.json`, (channelInfo) => {
                 if (channelInfo?.messages)
                     resolve(channelInfo.messages)
                 else {
-                    log(`Channel/Thread ${message.channel}-context does not exist. File will be created shortly...`)
+                    log(`Channel/Thread ${newMessage.channel}-context does not exist. File will be created shortly...`)
                 }
             })
         })
@@ -57,7 +63,7 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
     channelHistory.setQueue(channelContextHistory)
 
     // get message attachment if exists
-    const attachment = message.attachments.first()
+    const attachment = newMessage.attachments.first()
     let messageAttachment: string[] = []
 
     if (attachment && attachment.name?.endsWith(".txt"))
@@ -76,8 +82,8 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
     })
 
     // Store in Channel Context
-    addToChannelContext(message.channelId,
-        message.channel as TextChannel,
+    addToChannelContext(newMessage.channelId,
+        newMessage.channel as TextChannel,
         channelHistory.getItems()
     )
 
@@ -94,11 +100,11 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         while (attempt < maxRetries) {
             try {
                 await new Promise((resolve, reject) => {
-                    getServerConfig(`${message.guildId}-config.json`, (config) => {
+                    getServerConfig(`${newMessage.guildId}-config.json`, (config) => {
                         // check if config.json exists
                         if (config === undefined) {
                             // Allowing chat options to be available
-                            openConfig(`${message.guildId}-config.json`, 'toggle-chat', true)
+                            openConfig(`${newMessage.guildId}-config.json`, 'toggle-chat', true)
                             reject(new Error('Failed to locate or create Server Preferences\n\nPlease try chatting again...'))
                         }
 
@@ -128,10 +134,10 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
             try {
                 // Retrieve User Preferences
                 userConfig = await new Promise((resolve, reject) => {
-                    getUserConfig(`${message.author.username}-config.json`, (config) => {
+                    getUserConfig(`${newMessage.author.username}-config.json`, (config) => {
                         if (config === undefined) {
-                            openConfig(`${message.author.username}-config.json`, 'switch-model', defaultModel)
-                            reject(new Error(`No User Preferences is set up.\n\nCreating new preferences file for ${message.author.username}\nPlease try chatting again.`))
+                            openConfig(`${newMessage.author.username}-config.json`, 'switch-model', defaultModel)
+                            reject(new Error(`No User Preferences is set up.\n\nCreating new preferences file for ${newMessage.author.username}\nPlease try chatting again.`))
                             return
                         }
 
@@ -149,7 +155,7 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
                         shouldStream = config.options['message-stream'] as boolean || false
 
                         if (typeof config.options['switch-model'] !== 'string')
-                            reject(new Error(`No Model was set. Please set a model by running \`/switch-model <model of choice>\`.\n\nIf you do not have any models. Run \`/pull-model <model name>\`.`))
+                            reject(new Error(`No Model was set. Please set a model by running \\\`/switch-model <model of choice>\\\`.\n\nIf you do not have any models. Run \\\`/pull-model <model name>\\\`.`))
 
                         resolve(config)
                     })
@@ -168,18 +174,18 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         // need new check for "open/active" threads/channels here!
         let chatMessages: UserMessage[] = await new Promise((resolve) => {
             // set new queue to modify
-            getChannelInfo(`${message.channelId}-${message.author.username}.json`, (channelInfo) => {
+            getChannelInfo(`${newMessage.channelId}-${newMessage.author.username}.json`, (channelInfo) => {
                 if (channelInfo?.messages) {
                     resolve(channelInfo.messages)
                 } else {
-                    log(`Channel/Thread ${message.channel}-${message.author.username} does not exist. File will be created shortly...`)
+                    log(`Channel/Thread ${newMessage.channel}-${newMessage.author.username} does not exist. File will be created shortly...`)
                     resolve([])
                 }
             })
         })
 
         if (!userConfig)
-            throw new Error(`Failed to initialize User Preference for **${message.author.username}**.\n\nIt's likely you do not have a model set. Please use the \`switch-model\` command to do that.`)
+            throw new Error(`Failed to initialize User Preference for **${newMessage.author.username}**.\n\nIt's likely you do not have a model set. Please use the 	exttt{switch-model} command to do that.`)
 
         const model: string = userConfig.options['switch-model']
 
@@ -197,7 +203,7 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         })
 
         // response string for ollama to put its response
-        const response: string = await normalMessage(message, ollama, model, msgHist, shouldStream)
+        const response: string = await normalMessage(newMessage, ollama, model, msgHist, shouldStream)
 
         // If something bad happened, remove user query and stop
         if (response == undefined) { msgHist.pop(); return }
@@ -213,13 +219,13 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         })
 
         // only update the json on success
-        openChannelInfo(message.channelId,
-            message.channel as TextChannel,
-            message.author.tag,
+        openChannelInfo(newMessage.channelId,
+            newMessage.channel as TextChannel,
+            newMessage.author.tag,
             msgHist.getItems()
         )
     } catch (error: any) {
         msgHist.pop() // remove message because of failure
-        message.reply(`**Error Occurred:**\n\n**Reason:** *${error.message}*`)
+        newMessage.reply(`**Error Occurred:**\n\n**Reason:** *${error.message}*`)
     }
 })
