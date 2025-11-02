@@ -118,7 +118,7 @@ export async function openChannelInfo(filename: string, channel: TextChannel | T
                 \"id\": \"${channel?.id}\", 
                 \"name\": \"${channel?.name}\", 
                 \"user\": \"${user}\", 
-                \"messages\": []
+                \"messages\": ${JSON.stringify(messages)}
             }`
         )
 
@@ -126,7 +126,6 @@ export async function openChannelInfo(filename: string, channel: TextChannel | T
         if (!fs.existsSync(directory))
             fs.mkdirSync(directory, { recursive: true })
 
-        // only creating it, no need to add anything
         fs.writeFileSync(fullFileName, JSON.stringify(object, null, 2))
         console.log(`[Util: openChannelInfo] Created '${fullFileName}' in working directory`)
     }

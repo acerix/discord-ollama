@@ -175,22 +175,7 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
             })
         })
 
-        if (chatMessages.length === 0) {
-            chatMessages = await new Promise((resolve, reject) => {
-                openChannelInfo(message.channelId,
-                    message.channel as TextChannel,
-                    message.author.tag
-                )
-                getChannelInfo(`${message.channelId}-${message.author.username}.json`, (channelInfo) => {
-                    if (channelInfo?.messages)
-                        resolve(channelInfo.messages)
-                    else {
-                        log(`Channel/Thread ${message.channel}-${message.author.username} does not exist. File will be created shortly...`)
-                        reject(new Error(`Failed to find ${message.author.username}'s history. Try chatting again.`))
-                    }
-                })
-            })
-        }
+
 
         if (!userConfig)
             throw new Error(`Failed to initialize User Preference for **${message.author.username}**.\n\nIt's likely you do not have a model set. Please use the \`switch-model\` command to do that.`)
