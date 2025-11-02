@@ -166,16 +166,14 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         let chatMessages: UserMessage[] = await new Promise((resolve) => {
             // set new queue to modify
             getChannelInfo(`${message.channelId}-${message.author.username}.json`, (channelInfo) => {
-                if (channelInfo?.messages)
+                if (channelInfo?.messages) {
                     resolve(channelInfo.messages)
-                else {
+                } else {
                     log(`Channel/Thread ${message.channel}-${message.author.username} does not exist. File will be created shortly...`)
                     resolve([])
                 }
             })
         })
-
-
 
         if (!userConfig)
             throw new Error(`Failed to initialize User Preference for **${message.author.username}**.\n\nIt's likely you do not have a model set. Please use the \`switch-model\` command to do that.`)
