@@ -68,7 +68,6 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
     while (channelHistory.size() >= channelHistory.capacity) channelHistory.dequeue()
 
     // push user response to channel history
-    console.log
     channelHistory.enqueue({
         role: 'user',
         content: cleanedMessage,
@@ -179,7 +178,7 @@ export default event(Events.MessageCreate, async ({ log, msgHist, channelHistory
         })
 
         if (!userConfig)
-            throw new Error(`Failed to initialize User Preference for **${message.author.username}**.\n\nIt's likely you do not have a model set. Please use the \`switch-model\` command to do that.`)
+            throw new Error(`Failed to initialize User Preference for **${message.author.username}**.\n\nIt\'s likely you do not have a model set. Please use the \`switch-model\` command to do that.`)
 
         const model: string = userConfig.options['switch-model']
 
