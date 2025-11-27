@@ -11,7 +11,7 @@
     "build": "tsc",
     "prod": "node .",
     "client": "npm run build && npm run prod",
-    "clean": "docker compose down && docker rmi $(docker images | grep kevinthedang | tr -s ' ' | cut -d ' ' -f 3) && docker rmi $(docker images --filter \"dangling=true\" -q --no-trunc)",
+    "clean": "docker compose down && docker rmi $(docker images --format table | grep kevinthedang | tr -s ' ' | cut -d ' ' -f 3) && docker rmi $(docker images --format table --filter \"dangling=true\" -q --no-trunc)",
     "start": "docker compose build --no-cache && docker compose up -d",
     "docker:clean": "docker rm -f discord && docker rm -f ollama && docker network prune -f && docker rmi $(docker images | grep kevinthedang | tr -s ' ' | cut -d ' ' -f 3) && docker rmi $(docker images --filter \"dangling=true\" -q --no-trunc)",
     "docker:network": "docker network create --subnet=172.18.0.0/16 ollama-net",
